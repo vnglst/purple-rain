@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Purple Rain</title>
+    <meta name="description" content="." />
+    <link rel="canonical" href="https://purple-rain.koenvangilst.nl/" />
+    <link rel="author" href="https://koenvangilst.nl" />
+    <meta name="theme-color" content="#924FF1" />
+    <meta name="creator" content="Koen van Gilst" />
+    <style>
+      html {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100%;
+        background: linear-gradient(to bottom, #ff88aa 0%, #2d135f 100%);
+      }
+
+      canvas {
+        display: block;
+        border-radius: 10px;
+        overflow: hidden;
+        font-family: monospace;
+        margin-top: auto;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+        width: min(70vh, 80%);
+        max-width: 600px;
+      }
+
+      #made {
+        text-align: center;
+        line-height: 1.5;
+        font-family: monospace;
+        margin-top: auto;
+        margin-bottom: 20px;
+        font-size: 10px;
+        color: #eff1e4;
+      }
+
+      a {
+        color: #eff1e4;
+        text-decoration: none;
+        border-bottom: 1px solid #eff1e4;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="rainCanvas" width="500" height="500"></canvas>
+    <p id="made">
+      made by <a href="https://koenvangilst.nl">Koen van Gilst</a> | source on
+      <a href="">github</a>
+    </p>
+    <script>
+      // Colors palette from: https://twitter.com/AlexCristache/status/1749703514409111961
+      const colorPalette = {
+        AngelFeather: "#F4EFEF",
+        Girlie: "#FFD3CF",
+        StrawberryDreams: "#FF88AA",
+        PurpleQueen: "#924FF1",
+        Indiglory: "#5511BB",
+        Voldemort: "#2D135F",
+      };
+
+      const colorArray = Object.values(colorPalette);
+
+      const canvas = document.getElementById("rainCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const dropletSize = 25;
+      const columns = Math.floor(canvas.width / dropletSize);
+      const rows = Math.floor(canvas.height / dropletSize) / 2;
+
+      const grid = [];
+      for (let x = 0; x < columns; x++) {
+        grid[x] = [];
+        for (let y = -1; y < rows - 1; y++) {
+          const speed = Math.random() + 1;
+          const randomColor = Math.floor(Math.random() * colorArray.length);
+          const [r, g, b] = colorArray[randomColor]
+            .match(/\w\w/g)
+            .map((c) => parseInt(c, 16));
+
+          const color = `rgba(${r}, ${g}, ${b}, ${speed - 1})`;
+
+          grid[x].push({
+            x: x * dropletSize,
+            y: Math.random() * canvas.height - canvas.height,
+            color,
+            speed,
+          });
+        }
+      }
+
+      function drawDroplets() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let x = 0; x < columns; x++) {
+          for (let y = 0; y < rows; y++) {
+            ctx.fillStyle = grid[x][y].color;
+            ctx.save(); // Save the current state
+            ctx.translate(
+              grid[x][y].x + dropletSize / 2,
+              grid[x][y].y + dropletSize / 2
+            ); // Move the origin to the center of the droplet
+            let heightFactor = 1 - grid[x][y].y / canvas.height; // Calculate the height factor
+            ctx.transform(1, 0, (wind * heightFactor) / 3, 1, 0, 0); // Skew the canvas based on the wind effect and heightFactor
+            ctx.beginPath();
+            // Draw the bottom half of the droplet as a semi-circle
+            ctx.arc(0, 0, dropletSize / 2, 0, Math.PI, false);
+            // Draw the top point of the droplet, adjust the y-coordinate to keep the droplet longer
+            ctx.lineTo(0, -dropletSize * 1.5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore(); // Restore the state
+          }
+        }
+      }
+
+      function updateGrid() {
+        for (let x = 0; x < columns; x++) {
+          for (let y = 0; y < rows; y++) {
+            grid[x][y].y += grid[x][y].speed;
+            // Adjust the wind effect based on the y-coordinate of the droplet
+            let heightFactor = 1 - grid[x][y].y / canvas.height;
+            grid[x][y].x += wind * heightFactor;
+            if (Math.ceil(grid[x][y].y) >= canvas.height + 3 * dropletSize) {
+              grid[x][y].y =
+                -dropletSize + (grid[x][y].y - canvas.height - 3 * dropletSize);
+              grid[x][y].x = x * dropletSize; // Reset the x-coordinate when the droplet reaches the bottom
+            }
+          }
+        }
+      }
+
+      let wind = 0.1;
+      let targetWind = 0;
+
+      function animate() {
+        if (Math.random() < 0.01) {
+          targetWind = (Math.random() - 0.5) * 3;
+        }
+
+        wind += (targetWind - wind) * 0.01;
+
+        updateGrid();
+        drawDroplets();
+        requestAnimationFrame(animate);
+      }
+
+      animate();
+    </script>
+  </body>
+</html>
